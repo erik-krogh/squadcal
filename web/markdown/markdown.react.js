@@ -27,7 +27,7 @@ class Markdown extends React.PureComponent<Props> {
   }
 
   render() {
-    return this.output(this.ast);
+    return <div>{this.output(this.ast)}</div>;
   }
 }
 
