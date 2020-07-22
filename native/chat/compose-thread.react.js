@@ -528,7 +528,7 @@ export default connect(
       colors: colorsSelector(state),
       styles: stylesSelector(state),
       viewerID: state.currentUserInfo && state.currentUserInfo.id,
-      userInfos: state.userInfos,
+      userInfos: state.userStore.userInfos,
     };
   },
   { newThread, searchUsers },
