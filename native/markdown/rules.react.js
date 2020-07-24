@@ -7,7 +7,7 @@ import * as React from 'react';
 import { Text, Linking, Alert } from 'react-native';
 import * as SimpleMarkdown from 'simple-markdown';
 
-import { urlRegex, paragraphRegex } from 'lib/shared/markdown';
+import { urlRegEx, paragraphRegEx } from 'lib/shared/markdown';
 import { normalizeURL } from 'lib/utils/url-utils';
 
 type MarkdownRuleSpec = {|
@@ -50,7 +50,7 @@ function inlineMarkdownRules(
     url: {
       ...SimpleMarkdown.defaultRules.url,
       // simple-markdown is case-sensitive, but we don't want to be
-      match: SimpleMarkdown.inlineRegex(urlRegex),
+      match: SimpleMarkdown.inlineRegex(urlRegEx),
     },
     // Matches '[Google](https://google.com)' during parse phase and handles
     // rendering all 'link' nodes, including for 'autolink' and 'url'
@@ -76,7 +76,7 @@ function inlineMarkdownRules(
       ...SimpleMarkdown.defaultRules.paragraph,
       // simple-markdown collapses multiple newlines into one, but we want to
       // preserve the newlines
-      match: SimpleMarkdown.blockRegex(paragraphRegex),
+      match: SimpleMarkdown.blockRegex(paragraphRegEx),
       // eslint-disable-next-line react/display-name
       react: (
         node: SimpleMarkdown.SingleASTNode,

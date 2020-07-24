@@ -36,7 +36,7 @@ function linkRules(): MarkdownRuleSpec {
     },
     paragraph: {
       ...SimpleMarkdown.defaultRules.paragraph,
-      match: SimpleMarkdown.blockRegex(MarkdownRegex.paragraphRegex),
+      match: SimpleMarkdown.blockRegex(MarkdownRegex.paragraphRegEx),
       // eslint-disable-next-line react/display-name
       react: (
         node: SimpleMarkdown.SingleASTNode,
@@ -51,7 +51,7 @@ function linkRules(): MarkdownRuleSpec {
     text: SimpleMarkdown.defaultRules.text,
     url: {
       ...SimpleMarkdown.defaultRules.url,
-      match: SimpleMarkdown.inlineRegex(MarkdownRegex.urlRegex),
+      match: SimpleMarkdown.inlineRegex(MarkdownRegex.urlRegEx),
     },
   };
   return {
@@ -73,7 +73,7 @@ function markdownRules(): MarkdownRuleSpec {
     blockQuote: {
       ...SimpleMarkdown.defaultRules.blockQuote,
       // match end of blockQuote by either \n\n or end of string
-      match: SimpleMarkdown.blockRegex(MarkdownRegex.blockQuoteRegex),
+      match: SimpleMarkdown.blockRegex(MarkdownRegex.blockQuoteRegEx),
       parse(
         capture: SimpleMarkdown.Capture,
         parse: SimpleMarkdown.Parser,
@@ -92,19 +92,19 @@ function markdownRules(): MarkdownRuleSpec {
     u: SimpleMarkdown.defaultRules.u,
     heading: {
       ...SimpleMarkdown.defaultRules.heading,
-      match: SimpleMarkdown.blockRegex(MarkdownRegex.headingRegex),
+      match: SimpleMarkdown.blockRegex(MarkdownRegex.headingRegEx),
     },
     mailto: SimpleMarkdown.defaultRules.mailto,
     codeBlock: {
       ...SimpleMarkdown.defaultRules.codeBlock,
-      match: SimpleMarkdown.blockRegex(MarkdownRegex.codeBlockRegex),
+      match: SimpleMarkdown.blockRegex(MarkdownRegex.codeBlockRegEx),
       parse: (capture: SimpleMarkdown.Capture) => ({
         content: capture[0].replace(/^ {4}/gm, ''),
       }),
     },
     fence: {
       ...SimpleMarkdown.defaultRules.fence,
-      match: SimpleMarkdown.blockRegex(MarkdownRegex.fenceRegex),
+      match: SimpleMarkdown.blockRegex(MarkdownRegex.fenceRegEx),
       parse: (capture: SimpleMarkdown.Capture) => ({
         type: 'codeBlock',
         content: capture[2],
