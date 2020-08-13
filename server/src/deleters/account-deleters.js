@@ -14,7 +14,7 @@ import { promiseAll } from 'lib/utils/promises';
 
 import { dbQuery, SQL } from '../database';
 import { createNewAnonymousCookie } from '../session/cookies';
-import { fetchAllUserIDs } from '../fetchers/user-fetchers';
+import { fetchKnownUserInfos } from '../fetchers/user-fetchers';
 import { createUpdates } from '../creators/update-creator';
 import { handleAsyncPromise } from '../responders/handlers';
 
@@ -74,7 +74,10 @@ async function deleteAccount(
     viewer.setNewCookie(anonymousViewerData);
   }
 
-  const deletionUpdatesPromise = createAccountDeletionUpdates(deletedUserID);
+  const deletionUpdatesPromise = createAccountDeletionUpdates(
+    viewer,
+    deletedUserID,
+  );
   if (request) {
     handleAsyncPromise(deletionUpdatesPromise);
   } else {
@@ -93,16 +96,20 @@ async function deleteAccount(
 }
 
 async function createAccountDeletionUpdates(
+  viewer: Viewer,
   deletedUserID: string,
 ): Promise<void> {
-  const allUserIDs = await fetchAllUserIDs();
+  const userInfos = await fetchKnownUserInfos(viewer);
   const time = Date.now();
-  const updateDatas = allUserIDs.map(userID => ({
-    type: updateTypes.DELETE_ACCOUNT,
-    userID,
-    time,
-    deletedUserID,
-  }));
+  const updateDatas = [];
+  for (const userID in userInfos) {
+    updateDatas.push({
+      type: updateTypes.DELETE_ACCOUNT,
+      userID,
+      time,
+      deletedUserID,
+    });
+  }
   await createUpdates(updateDatas);
 }
 
