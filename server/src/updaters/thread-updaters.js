@@ -604,24 +604,14 @@ async function joinThread(
     calendarQuery ? fetchEntryInfos(viewer, [calendarQuery]) : undefined,
   ]);
 
-  // $FlowFixMe should be fixed in flow-bin@0.115 / react-native@0.63
-  let userInfos = {
-    ...fetchMessagesResult.userInfos,
-    ...membershipResult.userInfos,
-  };
   let rawEntryInfos;
   if (fetchEntriesResult) {
-    userInfos = {
-      ...userInfos,
-      ...fetchEntriesResult.userInfos,
-    };
     rawEntryInfos = fetchEntriesResult.rawEntryInfos;
   }
 
   const response: ThreadJoinResult = {
     rawMessageInfos: fetchMessagesResult.rawMessageInfos,
     truncationStatuses: fetchMessagesResult.truncationStatuses,
-    userInfos,
     updatesResult: {
       newUpdates: membershipResult.viewerUpdates,
     },

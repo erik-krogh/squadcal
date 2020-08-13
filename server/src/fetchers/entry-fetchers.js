@@ -115,7 +115,7 @@ async function fetchEntryInfos(
     .map(sqlConditionForCalendarQuery)
     .filter(condition => condition);
   if (queryConditions.length === 0) {
-    return { rawEntryInfos: [], userInfos: {} };
+    return { rawEntryInfos: [] };
   }
   const queryCondition = mergeOrConditions(queryConditions);
 
@@ -138,7 +138,7 @@ async function fetchEntryInfos(
   for (let row of result) {
     rawEntryInfos.push(rawEntryInfoFromRow(row));
   }
-  return { rawEntryInfos, userInfos: {} };
+  return { rawEntryInfos };
 }
 
 async function checkThreadPermissionForEntry(
