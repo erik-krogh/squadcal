@@ -19,7 +19,6 @@ import { dbQuery, SQL, SQLStatement } from '../database';
 
 type FetchServerThreadInfosResult = {|
   threadInfos: { [id: string]: ServerThreadInfo },
-  userInfos: { [id: string]: AccountUserInfo },
 |};
 
 async function fetchServerThreadInfos(
@@ -47,7 +46,6 @@ async function fetchServerThreadInfos(
   const [result] = await dbQuery(query);
 
   const threadInfos = {};
-  const userInfos = {};
   for (let row of result) {
     const threadID = row.id.toString();
     if (!threadInfos[threadID]) {
@@ -85,20 +83,13 @@ async function fetchServerThreadInfos(
         subscription: row.subscription,
         unread: row.role ? !!row.unread : null,
       });
-      if (row.username) {
-        userInfos[userID] = {
-          id: userID,
-          username: row.username,
-        };
-      }
     }
   }
-  return { threadInfos, userInfos };
+  return { threadInfos };
 }
 
 export type FetchThreadInfosResult = {|
   threadInfos: { [id: string]: RawThreadInfo },
-  userInfos: { [id: string]: AccountUserInfo },
 |};
 
 async function fetchThreadInfos(
@@ -115,7 +106,6 @@ function rawThreadInfosFromServerThreadInfos(
 ): FetchThreadInfosResult {
   const viewerID = viewer.id;
   const threadInfos = {};
-  const userInfos = {};
   for (let threadID in serverResult.threadInfos) {
     const serverThreadInfo = serverResult.threadInfos[threadID];
     const threadInfo = rawThreadInfoFromServerThreadInfo(
@@ -124,15 +114,9 @@ function rawThreadInfosFromServerThreadInfos(
     );
     if (threadInfo) {
       threadInfos[threadID] = threadInfo;
-      for (let member of threadInfo.members) {
-        const userInfo = serverResult.userInfos[member.id];
-        if (userInfo) {
-          userInfos[member.id] = userInfo;
-        }
-      }
     }
   }
-  return { threadInfos, userInfos };
+  return { threadInfos };
 }
 
 async function verifyThreadIDs(
