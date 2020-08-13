@@ -10,7 +10,7 @@ import type {
   RestoreEntryRequest,
   RestoreEntryResponse,
   FetchEntryInfosResponse,
-  DeltaEntryInfosResult,
+  DeltaEntryInfosResponse,
   SaveEntryResponse,
 } from 'lib/types/entry-types';
 import type {
@@ -23,7 +23,6 @@ import t from 'tcomb';
 
 import { ServerError } from 'lib/utils/errors';
 import { filteredThreadIDs } from 'lib/selectors/calendar-filter-selectors';
-import { values } from 'lib/utils/objects';
 
 import {
   validateInput,
@@ -216,7 +215,7 @@ async function entryRestorationResponder(
 async function calendarQueryUpdateResponder(
   viewer: Viewer,
   input: any,
-): Promise<DeltaEntryInfosResult> {
+): Promise<DeltaEntryInfosResponse> {
   const request: CalendarQuery = input;
   await validateInput(viewer, newEntryQueryInputValidator, input);
 
@@ -239,7 +238,8 @@ async function calendarQueryUpdateResponder(
   return {
     rawEntryInfos: response.rawEntryInfos,
     deletedEntryIDs: response.deletedEntryIDs,
-    userInfos: values(response.userInfos),
+    // Old clients expect userInfos object
+    userInfos: {},
   };
 }
 
