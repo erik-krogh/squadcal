@@ -12,7 +12,7 @@ import type { RawThreadInfo } from 'lib/types/thread-types';
 import type { AccountUserInfo, LoggedInUserInfo } from 'lib/types/user-types';
 import {
   defaultNumberPerThread,
-  type FetchMessageInfosResult,
+  type FetchMessageInfosResponse,
 } from 'lib/types/message-types';
 import {
   type RawEntryInfo,
@@ -85,7 +85,6 @@ export type ViewerInfo =
       calendarQuery: ?CalendarQuery,
       updatesForCurrentSession?: UpdatesForCurrentSession,
       threadInfos: { [id: string]: RawThreadInfo },
-      userInfos: { [id: string]: AccountUserInfo },
     |};
 const emptyArray = [];
 const defaultUpdateCreationResult = { viewerUpdates: [], userInfos: {} };
@@ -472,12 +471,12 @@ async function fetchUpdateInfosWithRawUpdateInfos(
 
   let threadInfosResult;
   if (viewerInfo.threadInfos) {
-    const { threadInfos, userInfos } = viewerInfo;
-    threadInfosResult = { threadInfos, userInfos };
+    const { threadInfos } = viewerInfo;
+    threadInfosResult = { threadInfos };
   } else if (threadResult) {
     threadInfosResult = threadResult;
   } else {
-    threadInfosResult = { threadInfos: {}, userInfos: {} };
+    threadInfosResult = { threadInfos: {} };
   }
 
   return await updateInfosFromRawUpdateInfos(viewer, rawUpdateInfos, {
@@ -491,7 +490,7 @@ async function fetchUpdateInfosWithRawUpdateInfos(
 
 export type UpdateInfosRawData = {|
   threadInfosResult: FetchThreadInfosResult,
-  messageInfosResult: ?FetchMessageInfosResult,
+  messageInfosResult: ?FetchMessageInfosResponse,
   calendarResult: ?FetchEntryInfosResponse,
   entryInfosResult: ?$ReadOnlyArray<RawEntryInfo>,
   currentUserInfosResult: ?$ReadOnlyArray<LoggedInUserInfo>,
