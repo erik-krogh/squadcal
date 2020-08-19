@@ -2,7 +2,7 @@
 
 import type {
   CalendarQuery,
-  FetchEntryInfosResponse,
+  FetchEntryInfosResult,
   DeltaEntryInfosResponse,
   RawEntryInfo,
 } from 'lib/types/entry-types';
@@ -110,7 +110,7 @@ function sqlConditionForCalendarQuery(
 async function fetchEntryInfos(
   viewer: Viewer,
   calendarQueries: $ReadOnlyArray<CalendarQuery>,
-): Promise<FetchEntryInfosResponse> {
+): Promise<FetchEntryInfosResult> {
   const queryConditions = calendarQueries
     .map(sqlConditionForCalendarQuery)
     .filter(condition => condition);

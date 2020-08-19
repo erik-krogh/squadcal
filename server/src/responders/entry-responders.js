@@ -9,7 +9,7 @@ import type {
   DeleteEntryResponse,
   RestoreEntryRequest,
   RestoreEntryResponse,
-  FetchEntryInfosResult,
+  FetchEntryInfosResponse,
   DeltaEntryInfosResult,
   SaveEntryResponse,
 } from 'lib/types/entry-types';
@@ -119,14 +119,14 @@ async function verifyCalendarQueryThreadIDs(
 async function entryFetchResponder(
   viewer: Viewer,
   input: any,
-): Promise<FetchEntryInfosResult> {
+): Promise<FetchEntryInfosResponse> {
   await validateInput(viewer, entryQueryInputValidator, input);
   const request = normalizeCalendarQuery(input);
 
   await verifyCalendarQueryThreadIDs(request);
 
   const response = await fetchEntryInfos(viewer, [request]);
-  return { ...response, userInfos: [] };
+  return { ...response, userInfos: {} };
 }
 
 const entryRevisionHistoryFetchInputValidator = tShape({
@@ -239,6 +239,8 @@ async function calendarQueryUpdateResponder(
   return {
     rawEntryInfos: response.rawEntryInfos,
     deletedEntryIDs: response.deletedEntryIDs,
+    // Old clients expect userInfos object
+    userInfos: [],
   };
 }
 
