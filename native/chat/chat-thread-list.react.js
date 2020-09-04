@@ -1,6 +1,12 @@
 // @flow
 
 import type { AppState } from '../redux/redux-setup';
+import type { UserSearchResult } from 'lib/types/search-types';
+import type {
+  AccountUserInfo,
+  GlobalUserInfo,
+  UserInfos,
+} from 'lib/types/user-types';
 import type { ThreadInfo } from 'lib/types/thread-types';
 import type { TabNavigationProp } from '../navigation/app-navigator.react';
 import type {
@@ -16,17 +22,22 @@ import _sum from 'lodash/fp/sum';
 import { FloatingAction } from 'react-native-floating-action';
 import { createSelector } from 'reselect';
 import invariant from 'invariant';
+import _keyBy from 'lodash/fp/keyBy';
 
+import { searchIndexFromUserInfos } from 'lib/selectors/user-selectors';
 import { threadSearchIndex } from 'lib/selectors/nav-selectors';
 import SearchIndex from 'lib/shared/search-index';
+import { getUserSearchResults } from 'lib/shared/search-utils';
 import { connect } from 'lib/utils/redux-utils';
 import {
   type ChatThreadItem,
   chatThreadItemPropType,
   chatListDataWithNestedSidebars,
 } from 'lib/selectors/chat-selectors';
+import { searchUsers } from 'lib/actions/user-actions';
 
 import ChatThreadListItem from './chat-thread-list-item.react';
+import FakeChatThreadListItem from './fake-chat-thread-list-item.react';
 import {
   ComposeThreadRouteName,
   MessageListRouteName,
@@ -53,6 +64,7 @@ const floatingActions = [
 
 type Item =
   | ChatThreadItem
+  | {| type: 'fakeChatThreadItem', userInfo: AccountUserInfo |}
   | {| type: 'search', searchText: string |}
   | {| type: 'empty', emptyItem: React.ComponentType<{||}> |};
 
@@ -64,14 +76,18 @@ type Props = {|
   emptyItem?: React.ComponentType<{||}>,
   // Redux state
   chatListData: $ReadOnlyArray<ChatThreadItem>,
+  userInfos: UserInfos,
   viewerID: ?string,
   threadSearchIndex: SearchIndex,
   styles: typeof styles,
   indicatorStyle: IndicatorStyle,
+  // async functions that hit server APIs
+  searchUsers: (usernamePrefix: string) => Promise<UserSearchResult>,
 |};
 type State = {|
   searchText: string,
   searchResults: Set<string>,
+  searchUserInfos: { [id: string]: GlobalUserInfo },
 |};
 type PropsAndState = {| ...Props, ...State |};
 class ChatThreadList extends React.PureComponent<Props, State> {
@@ -88,16 +104,20 @@ class ChatThreadList extends React.PureComponent<Props, State> {
     threadSearchIndex: PropTypes.instanceOf(SearchIndex).isRequired,
     styles: PropTypes.objectOf(PropTypes.object).isRequired,
     indicatorStyle: indicatorStylePropType.isRequired,
+    searchUsers: PropTypes.func.isRequired,
   };
   state = {
     searchText: '',
     searchResults: new Set(),
+    searchUserInfos: {},
   };
   searchInput: ?React.ElementRef<typeof TextInput>;
   flatList: ?FlatList<Item>;
   scrollPos = 0;
 
   componentDidMount() {
+    this.searchUsers('');
+
     const chatNavigation: ?ChatNavigationProp<
       'ChatThreadList',
     > = this.props.navigation.dangerouslyGetParent();
@@ -132,6 +152,13 @@ class ChatThreadList extends React.PureComponent<Props, State> {
     }
   };
 
+  async searchUsers(usernamePrefix: string) {
+    const { userInfos } = await this.props.searchUsers(usernamePrefix);
+    this.setState({
+      searchUserInfos: _keyBy(userInfo => userInfo.id)(userInfos),
+    });
+  }
+
   renderItem = (row: { item: Item }) => {
     const item = row.item;
     if (item.type === 'search') {
@@ -149,6 +176,14 @@ class ChatThreadList extends React.PureComponent<Props, State> {
       const EmptyItem = item.emptyItem;
       return <EmptyItem />;
     }
+    if (item.type === 'fakeChatThreadItem') {
+      return (
+        <FakeChatThreadListItem
+          userInfo={item.userInfo}
+          onPressItem={() => {}}
+        />
+      );
+    }
     return <ChatThreadListItem data={item} onPressItem={this.onPressItem} />;
   };
 
@@ -159,6 +194,8 @@ class ChatThreadList extends React.PureComponent<Props, State> {
   static keyExtractor(item: Item) {
     if (item.threadInfo) {
       return item.threadInfo.id;
+    } else if (item.userInfo) {
+      return item.userInfo.id;
     } else if (item.emptyItem) {
       return 'empty';
     } else {
@@ -190,7 +227,11 @@ class ChatThreadList extends React.PureComponent<Props, State> {
       return 123;
     }
 
-    return 60 + item.sidebars.length * 30;
+    if (item.type === 'chatThreadItem') {
+      return 60 + item.sidebars.length * 30;
+    }
+
+    return 60 + 30;
   }
 
   static heightOfItems(data: $ReadOnlyArray<Item>): number {
@@ -199,15 +240,31 @@ class ChatThreadList extends React.PureComponent<Props, State> {
 
   listDataSelector = createSelector(
     (propsAndState: PropsAndState) => propsAndState.chatListData,
+    (propsAndState: PropsAndState) => propsAndState.userInfos,
+    (propsAndState: PropsAndState) => propsAndState.viewerID,
     (propsAndState: PropsAndState) => propsAndState.searchText,
+    (propsAndState: PropsAndState) => propsAndState.searchUserInfos,
     (propsAndState: PropsAndState) => propsAndState.searchResults,
     (propsAndState: PropsAndState) => propsAndState.emptyItem,
     (
       reduxChatListData: $ReadOnlyArray<ChatThreadItem>,
+      userInfos: UserInfos,
+      viewerID: ?string,
       searchText: string,
+      searchUserInfos: { [id: string]: GlobalUserInfo },
       searchResults: Set<string>,
       emptyItem?: React.ComponentType<{||}>,
     ): Item[] => {
+      // $FlowFixMe should be fixed in flow-bin@0.115 / react-native@0.63
+      const mergedUserInfos = { ...searchUserInfos, ...userInfos };
+      const searchIndex = searchIndexFromUserInfos(mergedUserInfos);
+      const excludeUserIDs = viewerID ? [viewerID] : [];
+      const users = getUserSearchResults(
+        searchText,
+        mergedUserInfos,
+        searchIndex,
+        excludeUserIDs,
+      );
       const chatItems = [];
       if (!searchText) {
         chatItems.push(
@@ -225,7 +282,24 @@ class ChatThreadList extends React.PureComponent<Props, State> {
       if (emptyItem && chatItems.length === 0) {
         chatItems.push({ type: 'empty', emptyItem });
       }
-      return [{ type: 'search', searchText }, ...chatItems];
+
+      const fakeChatItems = [];
+      if (searchText) {
+        const allMemberIDs = new Set();
+        for (const chatItem of chatItems) {
+          if (chatItem.type === 'chatThreadItem') {
+            for (const member of chatItem.threadInfo.members) {
+              allMemberIDs.add(member.id);
+            }
+          }
+        }
+        for (const userInfo of users) {
+          if (!allMemberIDs.has(userInfo.id)) {
+            fakeChatItems.push({ type: 'fakeChatThreadItem', userInfo });
+          }
+        }
+      }
+      return [{ type: 'search', searchText }, ...chatItems, ...fakeChatItems];
     },
   );
 
@@ -319,10 +393,14 @@ const styles = {
 };
 const stylesSelector = styleSelector(styles);
 
-export default connect((state: AppState) => ({
-  chatListData: chatListDataWithNestedSidebars(state),
-  viewerID: state.currentUserInfo && state.currentUserInfo.id,
-  threadSearchIndex: threadSearchIndex(state),
-  styles: stylesSelector(state),
-  indicatorStyle: indicatorStyleSelector(state),
-}))(ChatThreadList);
+export default connect(
+  (state: AppState) => ({
+    chatListData: chatListDataWithNestedSidebars(state),
+    userInfos: state.userStore.userInfos,
+    viewerID: state.currentUserInfo && state.currentUserInfo.id,
+    threadSearchIndex: threadSearchIndex(state),
+    styles: stylesSelector(state),
+    indicatorStyle: indicatorStyleSelector(state),
+  }),
+  { searchUsers },
+)(ChatThreadList);
