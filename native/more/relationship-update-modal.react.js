@@ -1,6 +1,6 @@
 // @flow
 
-import type { AccountUserInfo } from 'lib/types/user-types';
+import type { GlobalUserInfo, AccountUserInfo } from 'lib/types/user-types';
 import type { UserSearchResult } from 'lib/types/search-types';
 import type { DispatchActionPromise } from 'lib/utils/action-utils';
 import {
@@ -61,8 +61,8 @@ type Props = {|
 
 type State = {|
   usernameInputText: string,
-  userInfoInputArray: $ReadOnlyArray<AccountUserInfo>,
-  searchUserInfos: { [id: string]: AccountUserInfo },
+  userInfoInputArray: $ReadOnlyArray<GlobalUserInfo>,
+  searchUserInfos: { [id: string]: GlobalUserInfo },
 |};
 
 type PropsAndState = {| ...Props, ...State |};
@@ -94,10 +94,10 @@ class RelationshipUpdateModal extends React.PureComponent<Props, State> {
     (propsAndState: PropsAndState) => propsAndState.userInfoInputArray,
     (
       text: string,
-      searchUserInfos: { [id: string]: AccountUserInfo },
-      userInfos: { [id: string]: AccountUserInfo },
+      searchUserInfos: { [id: string]: $Shape<GlobalUserInfo> },
+      userInfos: { [id: string]: $Shape<AccountUserInfo> },
       viewerID: ?string,
-      userInfoInputArray: $ReadOnlyArray<AccountUserInfo>,
+      userInfoInputArray: $ReadOnlyArray<GlobalUserInfo>,
     ) => {
       const { target } = this.props.route.params;
       const excludeStatuses = [];
@@ -117,10 +117,12 @@ class RelationshipUpdateModal extends React.PureComponent<Props, State> {
         .map(userInfo => userInfo.id)
         .concat(viewerID || [])
         .concat(excludeBlockedAndFriendIDs);
-      const searchIndex = searchIndexFromUserInfos(searchUserInfos);
+      // $FlowFixMe should be fixed in flow-bin@0.115 / react-native@0.63
+      const mergedUserInfos = { ...searchUserInfos, ...userInfos };
+      const searchIndex = searchIndexFromUserInfos(mergedUserInfos);
       const results = getUserSearchResults(
         text,
-        searchUserInfos,
+        mergedUserInfos,
         searchIndex,
         excludeUserIDs,
       );
@@ -208,7 +210,7 @@ class RelationshipUpdateModal extends React.PureComponent<Props, State> {
     this.setState({ usernameInputText: text });
   };
 
-  onChangeTagInput = (userInfoInputArray: $ReadOnlyArray<AccountUserInfo>) => {
+  onChangeTagInput = (userInfoInputArray: $ReadOnlyArray<GlobalUserInfo>) => {
     this.setState({ userInfoInputArray });
   };
 
