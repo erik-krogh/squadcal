@@ -3,34 +3,44 @@
 import type { ChatMessageInfoItemWithHeight } from './message.react';
 import { chatMessageItemPropType } from 'lib/selectors/chat-selectors';
 import { assertComposableMessageType } from 'lib/types/message-types';
-import type { AppState } from '../redux/redux-setup';
 
 import * as React from 'react';
 import PropTypes from 'prop-types';
 import { StyleSheet, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import invariant from 'invariant';
+import { useSelector } from 'react-redux';
 
-import { connect } from 'lib/utils/redux-utils';
+import { createMessageReply } from 'lib/shared/message-utils';
 
 import SwipeableMessage from '../components/swipeable-message.react';
 import { FailedSend } from './failed-send.react';
 import { composedMessageMaxWidthSelector } from './composed-message-width';
 import { MessageHeader } from './message-header.react';
-import { type Colors, colorsPropType, colorsSelector } from '../themes/colors';
+import { type Colors, colorsPropType, useColors } from '../themes/colors';
+import {
+  inputStatePropType,
+  type InputState,
+  InputStateContext,
+} from '../input/input-state';
 
 const clusterEndHeight = 7;
 
-type Props = {|
+type BaseProps = {|
   ...React.ElementConfig<typeof View>,
-  item: ChatMessageInfoItemWithHeight,
-  sendFailed: boolean,
-  focused: boolean,
-  canSwipe?: boolean,
-  children: React.Node,
+  +item: ChatMessageInfoItemWithHeight,
+  +sendFailed: boolean,
+  +focused: boolean,
+  +canSwipe?: boolean,
+  +children: React.Node,
+|};
+type Props = {|
+  ...BaseProps,
   // Redux state
-  composedMessageMaxWidth: number,
-  colors: Colors,
+  +composedMessageMaxWidth: number,
+  +colors: Colors,
+  // withInputState
+  +inputState: ?InputState,
 |};
 class ComposedMessage extends React.PureComponent<Props> {
   static propTypes = {
@@ -41,6 +51,7 @@ class ComposedMessage extends React.PureComponent<Props> {
     children: PropTypes.node.isRequired,
     composedMessageMaxWidth: PropTypes.number.isRequired,
     colors: colorsPropType.isRequired,
+    inputState: inputStatePropType,
   };
   swipeable: ?React.ElementRef<typeof SwipeableMessage>;
 
@@ -54,6 +65,7 @@ class ComposedMessage extends React.PureComponent<Props> {
       children,
       composedMessageMaxWidth,
       colors,
+      inputState,
       ...viewProps
     } = this.props;
     const { id, creator } = item.messageInfo;
@@ -126,6 +138,10 @@ class ComposedMessage extends React.PureComponent<Props> {
   };
 
   reply = () => {
+    const { inputState, item } = this.props;
+    invariant(inputState, 'inputState should be set in reply');
+    invariant(item.messageInfo.text, 'text should be set in reply');
+    inputState.addReply(createMessageReply(item.messageInfo.text));
     invariant(this.swipeable, 'swipeable should be set in reply');
     this.swipeable.close();
   };
@@ -159,9 +175,21 @@ const styles = StyleSheet.create({
   },
 });
 
-const ConnectedComposedMessage = connect((state: AppState) => ({
-  composedMessageMaxWidth: composedMessageMaxWidthSelector(state),
-  colors: colorsSelector(state),
-}))(ComposedMessage);
-
+const ConnectedComposedMessage = React.memo<BaseProps>(
+  function ConnectedComposedMessage(props: BaseProps) {
+    const composedMessageMaxWidth = useSelector(
+      composedMessageMaxWidthSelector,
+    );
+    const colors = useColors();
+    const inputState = React.useContext(InputStateContext);
+    return (
+      <ComposedMessage
+        {...props}
+        composedMessageMaxWidth={composedMessageMaxWidth}
+        colors={colors}
+        inputState={inputState}
+      />
+    );
+  },
+);
 export { ConnectedComposedMessage as ComposedMessage, clusterEndHeight };
