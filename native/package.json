@@ -64,6 +64,8 @@
     "react-native-fs": "2.15.2",
     "react-native-gesture-handler": "^1.6.1",
     "react-native-in-app-message": "^1.0.2",
+    "react-native-interactable": "https://github.com/wix/react-native-interactable.git#master",
+    "react-native-interactable-reanimated": "^0.0.8",
     "react-native-keyboard-input": "6.0.1",
     "react-native-keychain": "^4.0.0",
     "react-native-notifications": "git+https://git@github.com/ashoat/react-native-notifications.git",

@@ -6,7 +6,7 @@ import { assertComposableMessageType } from 'lib/types/message-types';
 
 import * as React from 'react';
 import PropTypes from 'prop-types';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import invariant from 'invariant';
 import { useSelector } from 'react-redux';
@@ -110,15 +110,19 @@ class ComposedMessage extends React.PureComponent<Props> {
         {deliveryIcon}
       </View>
     );
-    if (canSwipe) {
+    if (canSwipe && (Platform.OS !== 'android' || Platform.Version >= 21)) {
       messageBox = (
-        <SwipeableMessage
-          onSwipeableWillOpen={this.reply}
-          isViewer={isViewer}
-          swipeableRef={this.swipeableRef}
-        >
-          {messageBox}
-        </SwipeableMessage>
+        <View style={[styles.content, alignStyle]}>
+          <SwipeableMessage
+            onSwipeableWillOpen={this.reply}
+            isViewer={isViewer}
+            contentStyle={[styles.content, alignStyle]}
+            messageBoxStyle={[styles.messageBox, messageBoxStyle]}
+          >
+            {children}
+          </SwipeableMessage>
+          {deliveryIcon}
+        </View>
       );
     }
 
@@ -142,8 +146,6 @@ class ComposedMessage extends React.PureComponent<Props> {
     invariant(inputState, 'inputState should be set in reply');
     invariant(item.messageInfo.text, 'text should be set in reply');
     inputState.addReply(createMessageReply(item.messageInfo.text));
-    invariant(this.swipeable, 'swipeable should be set in reply');
-    this.swipeable.close();
   };
 }
 
@@ -192,4 +194,5 @@ const ConnectedComposedMessage = React.memo<BaseProps>(
     );
   },
 );
+
 export { ConnectedComposedMessage as ComposedMessage, clusterEndHeight };
