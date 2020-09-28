@@ -13,7 +13,7 @@ import { useSelector } from 'react-redux';
 
 import { createMessageReply } from 'lib/shared/message-utils';
 
-import SwipeableMessage from '../components/swipeable-message.react';
+import SwipeableMessage from './swipeable-message.react';
 import { FailedSend } from './failed-send.react';
 import { composedMessageMaxWidthSelector } from './composed-message-width';
 import { MessageHeader } from './message-header.react';
@@ -53,7 +53,6 @@ class ComposedMessage extends React.PureComponent<Props> {
     colors: colorsPropType.isRequired,
     inputState: inputStatePropType,
   };
-  swipeable: ?React.ElementRef<typeof SwipeableMessage>;
 
   render() {
     assertComposableMessageType(this.props.item.messageInfo.type);
@@ -104,42 +103,35 @@ class ComposedMessage extends React.PureComponent<Props> {
       );
     }
 
-    let messageBox = (
-      <View style={[styles.content, alignStyle]}>
-        <View style={[styles.messageBox, messageBoxStyle]}>{children}</View>
-        {deliveryIcon}
-      </View>
-    );
+    const fullMessageBoxStyle = [styles.messageBox, messageBoxStyle];
+    let messageBox;
     if (canSwipe && (Platform.OS !== 'android' || Platform.Version >= 21)) {
       messageBox = (
-        <View style={[styles.content, alignStyle]}>
-          <SwipeableMessage
-            onSwipeableWillOpen={this.reply}
-            isViewer={isViewer}
-            contentStyle={[styles.content, alignStyle]}
-            messageBoxStyle={[styles.messageBox, messageBoxStyle]}
-          >
-            {children}
-          </SwipeableMessage>
-          {deliveryIcon}
-        </View>
+        <SwipeableMessage
+          onSwipeableWillOpen={this.reply}
+          isViewer={isViewer}
+          messageBoxStyle={fullMessageBoxStyle}
+        >
+          {children}
+        </SwipeableMessage>
       );
+    } else {
+      messageBox = <View style={fullMessageBoxStyle}>{children}</View>;
     }
 
     return (
       <View {...viewProps}>
         <MessageHeader item={item} focused={focused} display="lowContrast" />
         <View style={containerStyle}>
-          {messageBox}
+          <View style={[styles.content, alignStyle]}>
+            {messageBox}
+            {deliveryIcon}
+          </View>
           {failedSendInfo}
         </View>
       </View>
     );
   }
-
-  swipeableRef = (swipeable: ?React.ElementRef<typeof SwipeableMessage>) => {
-    this.swipeable = swipeable;
-  };
 
   reply = () => {
     const { inputState, item } = this.props;
