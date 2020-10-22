@@ -9,7 +9,7 @@ import type {
 } from './chat.react';
 
 import * as React from 'react';
-import { View, FlatList, Platform, TextInput } from 'react-native';
+import { View, FlatList, Platform, TextInput, Text } from 'react-native';
 import IonIcon from 'react-native-vector-icons/Ionicons';
 import PropTypes from 'prop-types';
 import _sum from 'lodash/fp/sum';
@@ -25,6 +25,7 @@ import {
   chatThreadItemPropType,
   chatListDataWithNestedSidebars,
 } from 'lib/selectors/chat-selectors';
+import { threadPermissions, threadTypes } from 'lib/types/thread-types';
 
 import ChatThreadListItem from './chat-thread-list-item.react';
 import {
@@ -41,6 +42,7 @@ import {
   indicatorStyleSelector,
 } from '../themes/colors';
 import Search from '../components/search.react';
+import Button from '../components/button.react';
 
 const floatingActions = [
   {
@@ -258,6 +260,48 @@ class ChatThreadList extends React.PureComponent<Props, State> {
     // within ChatThreadListItem
     return (
       <View style={this.props.styles.container}>
+        <Button
+          onPress={() =>
+            this.props.navigation.navigate({
+              name: MessageListRouteName,
+              params: {
+                threadInfo: {
+                  id: 'pending/118852',
+                  type: threadTypes.PERSONAL,
+                  name: 'Pending thread',
+                  uiName: 'Pending thread ui name',
+                  description: "It's a pending thread",
+                  color: 'ff0000',
+                  creationTime: Date.now(),
+                  parentThreadID: null,
+                  members: [],
+                  roles: {},
+                  currentUser: {
+                    role: null,
+                    permissions: {
+                      [threadPermissions.VOICED]: {
+                        value: true,
+                        source: '',
+                      },
+                    },
+                    subscription: {
+                      pushNotifs: false,
+                      home: false,
+                    },
+                    unread: false,
+                  },
+                },
+                pendingPersonalThreadUserInfo: {
+                  id: '118852',
+                  username: 'Username',
+                },
+              },
+              key: `${MessageListRouteName}/pending/118852`,
+            })
+          }
+        >
+          <Text>Pending thread</Text>
+        </Button>
         <FlatList
           data={this.listData}
           renderItem={this.renderItem}
