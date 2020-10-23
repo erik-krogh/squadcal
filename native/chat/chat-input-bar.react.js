@@ -7,6 +7,9 @@ import {
   threadPermissions,
   type ClientThreadJoinRequest,
   type ThreadJoinPayload,
+  threadTypes,
+  type NewThreadRequest,
+  type NewThreadResult,
 } from 'lib/types/thread-types';
 import type { LoadingStatus } from 'lib/types/loading-types';
 import { loadingStatusPropType } from 'lib/types/loading-types';
@@ -40,6 +43,7 @@ import {
   Text,
   ActivityIndicator,
   TouchableWithoutFeedback,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import FAIcon from 'react-native-vector-icons/FontAwesome';
@@ -51,8 +55,18 @@ import _throttle from 'lodash/throttle';
 import { useDispatch } from 'react-redux';
 
 import { saveDraftActionType } from 'lib/actions/miscellaneous-action-types';
-import { threadHasPermission, viewerIsMember } from 'lib/shared/thread-utils';
-import { joinThreadActionTypes, joinThread } from 'lib/actions/thread-actions';
+import {
+  getOtherMemberID,
+  threadHasPermission,
+  threadIsPersonalAndPending,
+  viewerIsMember,
+} from 'lib/shared/thread-utils';
+import {
+  joinThreadActionTypes,
+  joinThread,
+  newThread,
+  newThreadActionTypes,
+} from 'lib/actions/thread-actions';
 import { createLoadingStatusSelector } from 'lib/selectors/loading-selectors';
 import { trimMessage } from 'lib/shared/message-utils';
 import {
@@ -129,6 +143,7 @@ type Props = {|
   +dispatchActionPromise: DispatchActionPromise,
   // async functions that hit server APIs
   +joinThread: (request: ClientThreadJoinRequest) => Promise<ThreadJoinPayload>,
+  +newThread: (request: NewThreadRequest) => Promise<NewThreadResult>,
   // withInputState
   +inputState: ?InputState,
 |};
@@ -154,6 +169,7 @@ class ChatInputBar extends React.PureComponent<Props, State> {
     dispatchActionPromise: PropTypes.func.isRequired,
     joinThread: PropTypes.func.isRequired,
     inputState: inputStatePropType,
+    newThread: PropTypes.func.isRequired,
   };
   textInput: ?React.ElementRef<typeof TextInput>;
   clearableTextInput: ?ClearableTextInput;
@@ -168,6 +184,8 @@ class ChatInputBar extends React.PureComponent<Props, State> {
   sendButtonContainerOpen: Value;
   targetSendButtonContainerOpen: Value;
   sendButtonContainerStyle: ViewStyle;
+
+  newThreadID: ?string;
 
   constructor(props: Props) {
     super(props);
@@ -575,6 +593,37 @@ class ChatInputBar extends React.PureComponent<Props, State> {
     this.textInput.focus();
   };
 
+  getServerThreadID = async () => {
+    if (this.newThreadID) {
+      return this.newThreadID;
+    }
+    const { threadInfo } = this.props;
+    if (!threadIsPersonalAndPending(threadInfo)) {
+      return threadInfo.id;
+    }
+
+    const otherMemberID = getOtherMemberID(threadInfo);
+    invariant(
+      otherMemberID,
+      'Pending thread should contain other member id in its id',
+    );
+    try {
+      const resultPromise = this.props.newThread({
+        type: threadTypes.PERSONAL,
+        initialMemberIDs: [otherMemberID],
+      });
+      this.props.dispatchActionPromise(newThreadActionTypes, resultPromise);
+      const { newThreadID } = await resultPromise;
+      this.newThreadID = newThreadID;
+      return newThreadID;
+    } catch (e) {
+      Alert.alert('Unknown error', 'Uhh... try again?', [{ text: 'OK' }], {
+        cancelable: false,
+      });
+    }
+    return undefined;
+  };
+
   onSend = async () => {
     if (!trimMessage(this.state.text)) {
       return;
@@ -594,19 +643,23 @@ class ChatInputBar extends React.PureComponent<Props, State> {
 
     const localID = `local${this.props.nextLocalID}`;
     const creatorID = this.props.viewerID;
+    const threadID = await this.getServerThreadID();
     invariant(creatorID, 'should have viewer ID in order to send a message');
     invariant(
       this.props.inputState,
       'inputState should be set in ChatInputBar.onSend',
     );
-    this.props.inputState.sendTextMessage({
-      type: messageTypes.TEXT,
-      localID,
-      threadID: this.props.threadInfo.id,
-      text,
-      creatorID,
-      time: Date.now(),
-    });
+
+    if (threadID) {
+      this.props.inputState.sendTextMessage({
+        type: messageTypes.TEXT,
+        localID,
+        threadID,
+        text,
+        creatorID,
+        time: Date.now(),
+      });
+    }
   };
 
   onPressJoin = () => {
@@ -796,6 +849,7 @@ export default React.memo<BaseProps>(function ConnectedChatInputBar(
   const dispatch = useDispatch();
   const dispatchActionPromise = useDispatchActionPromise();
   const callJoinThread = useServerCall(joinThread);
+  const callNewThread = useServerCall(newThread);
 
   return (
     <ChatInputBar
@@ -813,6 +867,7 @@ export default React.memo<BaseProps>(function ConnectedChatInputBar(
       dispatchActionPromise={dispatchActionPromise}
       joinThread={callJoinThread}
       inputState={inputState}
+      newThread={callNewThread}
     />
   );
 });
