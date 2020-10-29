@@ -262,48 +262,80 @@ class ChatThreadList extends React.PureComponent<Props, State> {
     // within ChatThreadListItem
     return (
       <View style={this.props.styles.container}>
-        <Button
-          onPress={() =>
-            this.props.navigation.navigate({
-              name: MessageListRouteName,
-              params: {
-                threadInfo: {
-                  id: 'pending/118852',
-                  type: threadTypes.PERSONAL,
-                  name: 'Pending thread',
-                  uiName: 'Pending thread ui name',
-                  description: "It's a pending thread",
-                  color: 'ff0000',
-                  creationTime: Date.now(),
-                  parentThreadID: null,
-                  members: [],
-                  roles: {},
-                  currentUser: {
-                    role: null,
-                    permissions: {
-                      [threadPermissions.VOICED]: {
-                        value: true,
-                        source: '',
+        {[
+          {
+            id: '123650',
+            username: 'NoRelationship',
+          },
+          {
+            id: '123669',
+            username: 'BlockedTest1',
+          },
+          {
+            id: '123690',
+            username: 'BlockedByTest1',
+          },
+          {
+            id: '123713',
+            username: 'BlockedByAndBlocksTest1',
+          },
+          {
+            id: '123738',
+            username: 'RequestedTest1',
+          },
+          {
+            id: '123759',
+            username: 'RequestedByTest1',
+          },
+          {
+            id: '123778',
+            username: 'FriendOfTest1',
+          },
+        ].map(({ id, username }) => (
+          <Button
+            key={id}
+            onPress={() =>
+              this.props.navigation.navigate({
+                name: MessageListRouteName,
+                params: {
+                  threadInfo: {
+                    id: `pending/${id}`,
+                    type: threadTypes.PERSONAL,
+                    name: 'Pending thread',
+                    uiName: username,
+                    description: "It's a pending thread",
+                    color: 'ff0000',
+                    creationTime: Date.now(),
+                    parentThreadID: null,
+                    members: [],
+                    roles: {},
+                    currentUser: {
+                      role: null,
+                      permissions: {
+                        [threadPermissions.VOICED]: {
+                          value: true,
+                          source: '',
+                        },
                       },
+                      subscription: {
+                        pushNotifs: false,
+                        home: false,
+                      },
+                      unread: false,
                     },
-                    subscription: {
-                      pushNotifs: false,
-                      home: false,
-                    },
-                    unread: false,
+                  },
+                  pendingPersonalThreadUserInfo: {
+                    id,
+                    username,
                   },
                 },
-                pendingPersonalThreadUserInfo: {
-                  id: '118852',
-                  username: 'Username',
-                },
-              },
-              key: `${MessageListRouteName}/pending/118852`,
-            })
-          }
-        >
-          <Text>Pending thread</Text>
-        </Button>
+                key: `${MessageListRouteName}/pending/${id}`,
+              })
+            }
+          >
+            <Text>{username}</Text>
+          </Button>
+        ))}
         <FlatList
           data={this.listData}
           renderItem={this.renderItem}
