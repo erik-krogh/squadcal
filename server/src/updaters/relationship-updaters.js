@@ -10,6 +10,7 @@ import {
   directedStatus,
 } from 'lib/types/relationship-types';
 import { updateTypes, type UpdateData } from 'lib/types/update-types';
+import { threadTypes } from 'lib/types/thread-types';
 
 import invariant from 'invariant';
 
@@ -21,6 +22,7 @@ import { fetchUserInfos } from '../fetchers/user-fetchers';
 import { fetchFriendRequestRelationshipOperations } from '../fetchers/relationship-fetchers';
 import { createUpdates } from '../creators/update-creator';
 import { dbQuery, SQL } from '../database/database';
+import createThread from '../creators/thread-creator';
 
 async function updateRelationships(
   viewer: Viewer,
@@ -51,6 +53,12 @@ async function updateRelationships(
 
   const updateIDs = [];
   if (action === relationshipActions.FRIEND) {
+    // We have to create personal threads before setting the relationship
+    // status. By doing that we make sure that failed thread creation is
+    // reported to the caller and can be repeated - there should be only
+    // one PERSONAL thread per a pair of users and we can safely call it
+    // repeatedly.
+    await createPersonalThreads(viewer, request);
     const {
       userRelationshipOperations,
       errors: friendRequestErrors,
@@ -219,6 +227,31 @@ async function updateUndirectedRelationships(
     query.append(SQL`ON DUPLICATE KEY UPDATE status = VALUES(status)`);
   }
   await dbQuery(query);
+}
+
+async function createPersonalThreads(
+  viewer: Viewer,
+  request: RelationshipRequest,
+) {
+  invariant(
+    request.action === relationshipActions.FRIEND,
+    'We should only create a PERSONAL threads when sending a FRIEND request, ' +
+      `but we tried to do that for ${request.action}`,
+  );
+
+  const threadCreationPromises = request.userIDs.map((id) =>
+    createThread(
+      viewer,
+      {
+        type: threadTypes.PERSONAL,
+        initialMemberIDs: [id],
+      },
+      true,
+      'broadcast',
+    ),
+  );
+
+  return await Promise.all(threadCreationPromises);
 }
 
 export {
