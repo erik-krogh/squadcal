@@ -5,6 +5,7 @@ import {
   chatThreadItemPropType,
 } from 'lib/selectors/chat-selectors';
 import type { ThreadInfo } from 'lib/types/thread-types';
+import type { UserInfo } from 'lib/types/user-types';
 import type {
   SetThreadUnreadStatusPayload,
   SetThreadUnreadStatusRequest,
@@ -38,7 +39,10 @@ import ChatThreadListSeeMoreSidebars from './chat-thread-list-see-more-sidebars.
 
 type Props = {|
   +data: ChatThreadItem,
-  +onPressItem: (threadInfo: ThreadInfo) => void,
+  +onPressItem: (
+    data: ThreadInfo,
+    pendingPersonalThreadUserInfo?: UserInfo,
+  ) => void,
   +onPressSeeMoreSidebars: (threadInfo: ThreadInfo) => void,
   +onSwipeableWillOpen: (threadInfo: ThreadInfo) => void,
   +currentlyOpenedSwipeableId?: string,
@@ -118,8 +122,8 @@ function ChatThreadListItem({
   });
 
   const onPress = React.useCallback(() => {
-    onPressItem(data.threadInfo);
-  }, [onPressItem, data.threadInfo]);
+    onPressItem(data.threadInfo, data.pendingPersonalThreadUserInfo);
+  }, [onPressItem, data.threadInfo, data.pendingPersonalThreadUserInfo]);
 
   const onSwipeableRightWillOpen = React.useCallback(() => {
     onSwipeableWillOpen(data.threadInfo);
